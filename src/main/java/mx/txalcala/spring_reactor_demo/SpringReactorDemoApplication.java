@@ -39,10 +39,9 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 		Flux<String> fx1 = Flux.fromIterable(dishes);
 		// fx1.subscribe(x -> log.info("Dish: " + x));
 
-		// pendiente otro operador
-
 		// collectList: pasar de un flux a un mono
 		fx1.collectList()
+				.map(list -> String.join(" - ", list))
 				.subscribe(list -> log.info(list.toString()));
 
 	}
@@ -82,6 +81,72 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 		Thread.sleep(10000);
 	}
 
+	public void m6ZipWith() {
+		List<String> clients = new ArrayList<>();
+		clients.add("Client 1");
+		clients.add("Client 2");
+		// clients.add("Client 3");
+
+		Flux<String> fx1 = Flux.fromIterable(clients);
+		Flux<String> fx2 = Flux.fromIterable(dishes);
+
+		fx1.zipWith(fx2, (c, d) -> c + " - " + d).subscribe(log::info);
+	}
+
+	public void m7Merge() {
+		List<String> clients = new ArrayList<>();
+		clients.add("Client 1");
+		clients.add("Client 2");
+
+		Flux<String> fx1 = Flux.fromIterable(clients);
+		Flux<String> fx2 = Flux.fromIterable(dishes);
+		Mono<String> m1 = Mono.just("Txalcala");
+
+		fx1.doOnNext(e -> {
+			throw new ArithmeticException("BAD OPERATION");
+		}).subscribe();
+
+		Flux.merge(fx1, fx2, m1, m1, fx2).subscribe(log::info);
+	}
+
+	public void m8Filter() {
+		Flux<String> fx1 = Flux.fromIterable(dishes);
+
+		fx1.filter(e -> e.startsWith("Ce"))
+				.subscribe(log::info);
+	}
+
+	public void m9TakeLast() {
+		Flux<String> fx1 = Flux.fromIterable(dishes);
+		fx1.takeLast(6).subscribe(log::info);
+	}
+
+	public void m10Take() {
+		Flux<String> fx1 = Flux.fromIterable(dishes);
+		fx1.take(6).subscribe(log::info);
+	}
+
+	public void m11DefaultIfEmpty() {
+		dishes = new ArrayList<>();
+		Flux<String> fx1 = Flux.fromIterable(dishes);
+		// Cada elemento agregale la palabra Dish: "Dish: + e"
+		fx1.map(e -> "Dish: " + e)
+				.defaultIfEmpty("EMPTY FLUX")
+				.subscribe(log::info);
+	}
+
+	public void m12Error() {
+		Flux<String> fx1 = Flux.fromIterable(dishes);
+
+		fx1.doOnNext(e -> {
+			throw new ArithmeticException("BAD OPERATION");
+		})
+				// .onErrorMap(e -> new Exception(e.getMessage()))
+				.onErrorReturn("ERROR, TRY AGAIN")
+				.subscribe(log::info);
+
+	}
+
 	@Override
 	public void run(String... args) throws Exception {
 		dishes.add("Ceviche");
@@ -93,7 +158,13 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 		// m2Map();
 		// m3FlatMap();
 		// m4Range();
-		m5DelayElements();
+		// m5DelayElements();
+		// m6ZipWith();
+		// m7Merge();
+		// m8Filter();
+		// m9TakeLast();
+		// m10Take();
+		// m11DefaultIfEmpty();
+		m12Error();
 	}
-
 }
