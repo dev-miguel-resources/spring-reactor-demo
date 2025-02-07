@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @SpringBootApplication
 public class SpringReactorDemoApplication implements CommandLineRunner {
@@ -147,6 +148,55 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 
 	}
 
+	// Ejemplos de hilos con sus respectivos tipos
+	// La forma nativa de trabajar hilos con java: clase Threads
+	public void m13Threads() {
+		final Mono<String> mono = Mono.just("hello world");
+
+		Thread t = new Thread(() -> mono.map(msg -> msg + "thread : ")
+				// Nos subscribimos al mono y cuando se emite el valor, lo imprime junto con el
+				// nombre del hilo
+				.subscribe(v -> System.out.println(v + Thread.currentThread().getName())));
+
+		// Se imprime el nombre del hilo principal antes de iniciar el nuevo hilo.
+		// Primero, este system es el que se resuelve primero haciendo referencia al
+		// hilo principal
+		System.out.println(Thread.currentThread().getName());
+
+		// Iniciar el hilo t, lo que hace que la subscripción al Mono se ejecute en un
+		// nuevo hilo
+		t.start();
+	}
+
+	public void m14PublishOn() {
+		Flux.range(1, 2)
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				// PublishOn: contexto para definir un hilo de cierto tipo
+				// Single: Crear un nuevo hilo llamado x y ejecuta el o los siguiente procesos
+				// asociado a él
+				// Recomendaciones: Útil para procesos de cargas bloqueantes: accesos a bdd,
+				// lectura/escritura de archivos, conexiones con apis externas, etc...
+				.publishOn(Schedulers.newSingle("new"))
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				// BoundedElastic: Es ideal para tareas bloquantes: carga y descarga de archivos
+				// en la nube (CLOUDINARY, S3), peticiones http bloqueantes, consultas de bdd,
+				// operaciones que demoren
+				// Si hay procesos muy intensivos en cuanto a carga: usar este
+				// este es más óptimo algoritmicamente para manejar imágenes y cualquier otro
+				// archivo
+				.publishOn(Schedulers.boundedElastic())
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				}).subscribe();
+	}
+
 	@Override
 	public void run(String... args) throws Exception {
 		dishes.add("Ceviche");
@@ -165,6 +215,8 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 		// m9TakeLast();
 		// m10Take();
 		// m11DefaultIfEmpty();
-		m12Error();
+		// m12Error();
+		// m13Threads();
+		m14PublishOn();
 	}
 }
