@@ -197,6 +197,95 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 				}).subscribe();
 	}
 
+	public void m15SubcribeOn() {
+		Flux.range(1, 2)
+				// inmediate: definir un contexto de hilo de acuerdo a uno ya definido
+				// resumen: Este se ejecutará en el mismo hilo donde se subscribió en este caso
+				// el main.
+				// Útil: para procesos no bloqueantes (no asíncronos), de baja carga, no sean
+				// secuenciales que no depdendan de otros procesos
+				.subscribeOn(Schedulers.immediate())
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.subscribe();
+	}
+
+	public void m16PublishSubscribeOn() {
+		Flux.range(1, 2)
+				// resultado flujo 1: single-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				// single: no se puede renombrar o declarar un nombre a diferencia del newSingle
+				// subscribeOn: A diferencia del publishOn, los procesos antes y después del
+				// subcribeOn
+				// serán tomamos por ese hilo definido.
+				.subscribeOn(Schedulers.single())
+				// resultado flujo 2: single-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				// resultado flujo 3: single-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.subscribeOn(Schedulers.immediate())
+				// Si hay más de un subscribeOn: Tomará siempre el primer hilo definido
+				// .subscribeOn(Schedulers.boundedElastic())
+				// resultado flujo 4: single-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.publishOn(Schedulers.boundedElastic())
+				// resultado flujo 5: boundedElastic-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				// resultado flujo 6: boundedElastic-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.subscribe();
+	}
+
+	// RunOn: Solo funciona sobre tipos de hilos paralelos
+	// Importante: RunOn para ejecutar procesos en paralelo deben venir casteados a
+	// tipo parallel
+	// Cuando ejecutamos procesos mediante parallel, estos se distribuyen de manera
+	// dinámica
+	// al núcleo de tu máquina, si tiene 16 núcleos ocupa hasta este tope.
+	// Utilidad: Se recomienda cuando necesitas ejecutar tareas computacionalmente
+	// intensivas en múltiples núcleos del procesador para tener un mejor
+	// procesamiento.
+	// Casos: Algortimos de machine learning, procesamiento de imágenes, comprensión
+	// de datos, análisis de grandes volúmenes, procesos bloqueantes, etc..
+	public void m17runOn() {
+		Flux.range(1, 32)
+				.parallel(16) // acá lo convertimos a parallel Flux
+				.runOn(Schedulers.parallel()) // para ejecutar procesos paralelos de acuerdo a un flujo especificado
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.subscribe();
+	}
+
 	@Override
 	public void run(String... args) throws Exception {
 		dishes.add("Ceviche");
@@ -217,6 +306,9 @@ public class SpringReactorDemoApplication implements CommandLineRunner {
 		// m11DefaultIfEmpty();
 		// m12Error();
 		// m13Threads();
-		m14PublishOn();
+		// m14PublishOn();
+		// m15SubcribeOn();
+		// m16PublishSubscribeOn();
+		m17runOn();
 	}
 }
